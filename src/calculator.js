@@ -2,16 +2,22 @@
 'use strict';
 
 /**
- * Simple CLI calculator for the four basic arithmetic operations supported by the app:
+ * Simple CLI calculator for the supported arithmetic operations:
  * - addition (+)
  * - subtraction (-)
  * - multiplication (×)
  * - division (÷)
+ * - modulo (%)
+ * - exponentiation (^ or power)
+ * - square root (sqrt)
  *
  * Usage examples:
  *   node src/calculator.js 10 + 5
  *   node src/calculator.js add 10 5
  *   node src/calculator.js 12 3 /
+ *   node src/calculator.js 10 % 3
+ *   node src/calculator.js power 2 3
+ *   node src/calculator.js sqrt 9
  */
 
 function add(a, b) {
@@ -32,6 +38,26 @@ function divide(a, b) {
   }
 
   return a / b;
+}
+
+function modulo(a, b) {
+  if (b === 0) {
+    throw new Error('Modulo by zero is not allowed.');
+  }
+
+  return a % b;
+}
+
+function power(base, exponent) {
+  return Math.pow(base, exponent);
+}
+
+function squareRoot(n) {
+  if (n < 0) {
+    throw new Error('Square root of a negative number is not allowed.');
+  }
+
+  return Math.sqrt(n);
 }
 
 function normalizeOperator(value) {
@@ -57,6 +83,18 @@ function normalizeOperator(value) {
     return 'divide';
   }
 
+  if (['mod', 'modulo', '%'].includes(op)) {
+    return 'modulo';
+  }
+
+  if (['power', '^', '**', 'exponent', 'exponentiation'].includes(op)) {
+    return 'power';
+  }
+
+  if (['sqrt', 'square-root', 'squareroot', 'root'].includes(op)) {
+    return 'sqrt';
+  }
+
   return null;
 }
 
@@ -72,6 +110,19 @@ function parseNumber(value) {
 
 function parseArgs(argv) {
   const args = argv.slice();
+
+  if (args.length === 2) {
+    const [operationValue, numberValue] = args;
+    const operation = normalizeOperator(operationValue);
+
+    if (operation === 'sqrt') {
+      return {
+        operation,
+        left: parseNumber(numberValue),
+        right: null,
+      };
+    }
+  }
 
   if (args.length === 3) {
     const [firstValue, secondValue, thirdValue] = args;
@@ -120,6 +171,14 @@ function parseArgs(argv) {
   const left = optionMap['--left'] || optionMap['-a'] || optionMap['left'];
   const right = optionMap['--right'] || optionMap['-b'] || optionMap['right'];
 
+  if (operation === 'sqrt' && typeof left !== 'undefined') {
+    return {
+      operation,
+      left: parseNumber(left),
+      right: null,
+    };
+  }
+
   if (operation && typeof left !== 'undefined' && typeof right !== 'undefined') {
     return {
       operation,
@@ -141,6 +200,12 @@ function calculate(operation, left, right) {
       return multiply(left, right);
     case 'divide':
       return divide(left, right);
+    case 'modulo':
+      return modulo(left, right);
+    case 'power':
+      return power(left, right);
+    case 'sqrt':
+      return squareRoot(left);
     default:
       throw new Error(`Unsupported operation: ${operation}`);
   }
@@ -157,11 +222,14 @@ function main() {
     console.log(`Result: ${formatResult(result)}`);
   } catch (error) {
     console.error(`Error: ${error.message}`);
-    console.error('Supported operations: addition (+), subtraction (-), multiplication (×), division (÷)');
+    console.error('Supported operations: addition (+), subtraction (-), multiplication (×), division (÷), modulo (%), exponentiation (^), square root (sqrt)');
     console.error('Examples:');
     console.error('  node src/calculator.js 10 + 5');
     console.error('  node src/calculator.js add 10 5');
     console.error('  node src/calculator.js --operation divide --left 20 --right 4');
+    console.error('  node src/calculator.js 10 % 3');
+    console.error('  node src/calculator.js power 2 3');
+    console.error('  node src/calculator.js sqrt 9');
     process.exitCode = 1;
   }
 }
@@ -175,6 +243,9 @@ module.exports = {
   subtract,
   multiply,
   divide,
+  modulo,
+  power,
+  squareRoot,
   calculate,
   parseArgs,
   formatResult,
